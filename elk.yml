@@ -1,0 +1,69 @@
+version: "3"
+services:
+
+
+  elasticsearch:
+    image: elasticsearch:7.6.2
+    restart: always
+    volumes:
+      - /usr/share/elasticsearch_1/data:/usr/share/elasticsearch_1/data/
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    environment:
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - cluster.name=log-system
+      - bootstrap.memory_lock=true
+      - node.master=true
+      - node.data=true
+      - node.name=node_1
+      - discovery.seed_hosts=node_1
+      - cluster.initial_master_nodes=node_1
+      - xpack.ml.enabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+       - 9200:9200
+    networks:
+      - elk
+
+  kibana:
+    image: kibana:7.6.2
+    restart: always
+    volumes:
+      - kibana_data:/usr/share/kibana_1/data/
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    environment:
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+       - 5601:5601
+    networks:
+      - elk
+
+  logstash:
+    image: logstash:7.6.2
+    restart: always
+    volumes:
+      - /home/logging/logstash/logstash.yml:/usr/share/logstash/config/logstash.yml
+      - /home/logging/logstash/pipeline:/usr/share/logstash/pipeline
+      - /home/logging/logstash/patterns:/usr/share/logstash/patterns
+    ports:
+      - 9600:9600
+      - 5000:5000
+      - 5044:5044
+    networks:
+      - elk
+
+
+volumes:
+ el_data:
+  driver: local
+ kibana_data:
+   driver: local
+
+networks:
+  elk:
+    driver: bridge
